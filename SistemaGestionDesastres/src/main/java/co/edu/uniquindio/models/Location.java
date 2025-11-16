@@ -223,4 +223,155 @@ public class Location {
     public void setEvacuated(boolean isEvacuated) {
         this.isEvacuated = isEvacuated;
     }
+
+    // ==================== MÉTODOS DE UTILIDAD ====================
+
+    /**
+     * Incrementar el nivel de urgencia
+     * No excede el máximo de 5
+     */
+    public void increaseUrgency() {
+        if (urgencyLevel < 5) {
+            urgencyLevel++;
+        }
+    }
+
+    /**
+     * Decrementar el nivel de urgencia
+     * No baja del mínimo de 1
+     */
+    public void decreaseUrgency() {
+        if (urgencyLevel > 1) {
+            urgencyLevel--;
+        }
+    }
+
+    /**
+     * Agregar población a la ubicación
+     */
+    public void addPopulation(int amount) {
+        if (amount > 0) {
+            this.population += amount;
+        }
+    }
+
+    /**
+     * Reducir población de la ubicación
+     */
+    public void reducePopulation(int amount) {
+        if (amount > 0) {
+            this.population = Math.max(0, this.population - amount);
+        }
+    }
+
+    /**
+     * Verificar si la ubicación está en crisis (urgencia >= 4)
+     */
+    public boolean isInCrisis() {
+        return urgencyLevel >= 4;
+    }
+
+    /**
+     * Verificar si la ubicación está segura (urgencia <= 2)
+     */
+    public boolean isSafe() {
+        return urgencyLevel <= 2;
+    }
+
+    /**
+     * Obtener descripción del nivel de urgencia
+     */
+    public String getUrgencyDescription() {
+        switch (urgencyLevel) {
+            case 5: return "CRÍTICO";
+            case 4: return "ALTO";
+            case 3: return "MODERADO";
+            case 2: return "BAJO";
+            case 1: return "MÍNIMO";
+            default: return "DESCONOCIDO";
+        }
+    }
+
+    /**
+     * Calcular distancia aproximada a otra ubicación (en km)
+     * Usa la fórmula de Haversine
+     */
+    public double distanceTo(Location other) {
+        if (other == null) {
+            return Double.POSITIVE_INFINITY;
+        }
+
+        final int EARTH_RADIUS = 6371; // Radio de la Tierra en km
+
+        double lat1Rad = Math.toRadians(this.latitude);
+        double lat2Rad = Math.toRadians(other.latitude);
+        double deltaLat = Math.toRadians(other.latitude - this.latitude);
+        double deltaLon = Math.toRadians(other.longitude - this.longitude);
+
+        double a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                        Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS * c;
+    }
+
+    /**
+     * Obtener información completa de la ubicación
+     */
+    public String getFullInfo() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== ").append(name).append(" ===\n");
+        sb.append("ID: ").append(id).append("\n");
+        sb.append("Tipo: ").append(type).append("\n");
+        sb.append("Población: ").append(population).append(" personas\n");
+        sb.append("Urgencia: ").append(urgencyLevel).append("/5 (").append(getUrgencyDescription()).append(")\n");
+        sb.append("Coordenadas: (").append(latitude).append(", ").append(longitude).append(")\n");
+        sb.append("Estado: ").append(isEvacuated ? "EVACUADA" : "ACTIVA").append("\n");
+        if (!description.isEmpty()) {
+            sb.append("Descripción: ").append(description).append("\n");
+        }
+        return sb.toString();
+    }
+
+    // ==================== MÉTODOS SOBRESCRITOS ====================
+
+    /**
+     * Representación en String de la ubicación
+     */
+    @Override
+    public String toString() {
+        return name + " (" + type + ") - Urgencia: " + urgencyLevel + "/5" +
+                (isEvacuated ? " [EVACUADA]" : "");
+    }
+
+    /**
+     * Comparar ubicaciones por ID
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Location location = (Location) obj;
+        return id.equals(location.id);
+    }
+
+    /**
+     * Hash code basado en el ID
+     */
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    /**
+     * Crear una copia de la ubicación
+     */
+    public Location copy() {
+        Location copy = new Location(id, name, type, population, urgencyLevel,
+                latitude, longitude, description);
+        copy.setEvacuated(isEvacuated);
+        return copy;
+    }
 }
