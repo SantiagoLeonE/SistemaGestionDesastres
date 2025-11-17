@@ -463,4 +463,182 @@ public class AuthenticationService {
         return currentUser != null && currentUser.canManageUsers();
     }
 
+    // ==================== GESTIÓN DE CUENTAS ====================
+
+    /**
+     * Activar una cuenta de usuario
+     *
+     * @param username Usuario a activar
+     * @return true si se activó exitosamente
+     */
+    public boolean activateUser(String username) {
+        if (!isCurrentUserAdmin()) {
+            return false;
+        }
+
+        User user = users.get(username.toLowerCase().trim());
+        if (user != null) {
+            user.setActive(true);
+            user.resetLoginAttempts();
+            loginAttempts.put(username, 0);
+            lockoutTimes.remove(username);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Desactivar una cuenta de usuario
+     *
+     * @param username Usuario a desactivar
+     * @return true si se desactivó exitosamente
+     */
+    public boolean deactivateUser(String username) {
+        if (!isCurrentUserAdmin()) {
+            return false;
+        }
+
+        username = username.toLowerCase().trim();
+
+        // No permitir desactivar al usuario actual
+        if (currentUser != null && currentUser.getUsername().equals(username)) {
+            return false;
+        }
+
+        // No permitir desactivar al admin principal
+        if (username.equals("admin")) {
+            return false;
+        }
+
+        User user = users.get(username);
+        if (user != null) {
+            user.setActive(false);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Desbloquear cuenta bloqueada temporalmente
+     *
+     * @param username Usuario a desbloquear
+     * @return true si se desbloqueó exitosamente
+     */
+    public boolean unlockUser(String username) {
+        if (!isCurrentUserAdmin()) {
+            return false;
+        }
+
+        username = username.toLowerCase().trim();
+        lockoutTimes.remove(username);
+        loginAttempts.put(username, 0);
+
+        User user = users.get(username);
+        if (user != null) {
+            user.unlock();
+            return true;
+        }
+
+        return false;
+    }
+
+    // ==================== ESTADÍSTICAS ====================
+
+    /**
+     * Obtener número total de usuarios
+     */
+    public int getTotalUsers() {
+        return users.size();
+    }
+
+    /**
+     * Obtener número de usuarios activos
+     */
+    public int getActiveUsersCount() {
+        int count = 0;
+        CustomList<User> allUsers = users.values();
+
+        for (int i = 0; i < allUsers.size(); i++) {
+            if (allUsers.get(i).isActive()) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Obtener número de usuarios por rol
+     */
+    public int getUserCountByRole(User.UserRole role) {
+        return getUsersByRole(role).size();
+    }
+
+    /**
+     * Obtener usuarios bloqueados temporalmente
+     */
+    public CustomList<String> getLockedUsers() {
+        CustomList<String> locked = new CustomList<>();
+        CustomList<String> usernames = loginAttempts.keys();
+
+        for (int i = 0; i < usernames.size(); i++) {
+            String username = usernames.get(i);
+            if (isTemporarilyLocked(username)) {
+                locked.add(username);
+            }
+        }
+
+        return locked;
+    }
+
+    // ==================== INFORMACIÓN ====================
+
+    /**
+     * Obtener resumen de estadísticas de autenticación
+     */
+    public String getAuthenticationSummary() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== RESUMEN DE AUTENTICACIÓN ===\n");
+        sb.append("Total de usuarios: ").append(getTotalUsers()).append("\n");
+        sb.append("Usuarios activos: ").append(getActiveUsersCount()).append("\n");
+        sb.append("Administradores: ").append(getUserCountByRole(User.UserRole.ADMINISTRATOR)).append("\n");
+        sb.append("Operadores: ").append(getUserCountByRole(User.UserRole.EMERGENCY_OPERATOR)).append("\n");
+        sb.append("Coordinadores: ").append(getUserCountByRole(User.UserRole.COORDINATOR)).append("\n");
+        sb.append("Observadores: ").append(getUserCountByRole(User.UserRole.VIEWER)).append("\n");
+        sb.append("Usuarios bloqueados: ").append(getLockedUsers().size()).append("\n");
+
+        if (currentUser != null) {
+            sb.append("\nUsuario actual: ").append(currentUser.getFullName());
+            sb.append(" (").append(currentUser.getRole()).append(")\n");
+        } else {
+            sb.append("\nNo hay sesión activa\n");
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Validar credenciales sin iniciar sesión
+     * Útil para verificaciones previas
+     */
+    public boolean validateCredentials(String username, String password) {
+        if (username == null || password == null) {
+            return false;
+        }
+
+        User user = users.get(username.toLowerCase().trim());
+        return user != null && user.checkPassword(password) && user.isActive();
+    }
+
+    /**
+     * Verificar si un nombre de usuario está disponible
+     */
+    public boolean isUsernameAvailable(String username) {
+        if (username == null || username.isEmpty()) {
+            return false;
+        }
+        return !users.containsKey(username.toLowerCase().trim());
+    }
 }
