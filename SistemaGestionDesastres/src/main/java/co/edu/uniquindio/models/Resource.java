@@ -217,4 +217,146 @@ public class Resource {
             this.type = type;
         }
     }
+
+    // ==================== MÉTODOS DE GESTIÓN DE CANTIDAD ====================
+
+    /**
+     * Agregar cantidad al recurso
+     *
+     * @param amount Cantidad a agregar
+     * @return true si se agregó exitosamente
+     */
+    public boolean addQuantity(int amount) {
+        if (amount > 0) {
+            this.quantity += amount;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Reducir cantidad del recurso
+     *
+     * @param amount Cantidad a reducir
+     * @return true si había suficiente cantidad, false si no
+     */
+    public boolean reduceQuantity(int amount) {
+        if (amount > 0 && amount <= quantity) {
+            quantity -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Transferir cantidad a otro recurso del mismo tipo
+     *
+     * @param other Recurso destino
+     * @param amount Cantidad a transferir
+     * @return true si la transferencia fue exitosa
+     */
+    public boolean transferTo(Resource other, int amount) {
+        if (other == null || !this.type.equals(other.type)) {
+            return false;
+        }
+
+        if (this.reduceQuantity(amount)) {
+            other.addQuantity(amount);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Verificar si hay suficiente cantidad
+     *
+     * @param required Cantidad requerida
+     * @return true si hay suficiente
+     */
+    public boolean hasEnough(int required) {
+        return quantity >= required;
+    }
+
+    /**
+     * Obtener el porcentaje de stock actual respecto al mínimo
+     *
+     * @return Porcentaje (0-100+)
+     */
+    public double getStockPercentage() {
+        if (minimumStock == 0) {
+            return 100.0;
+        }
+        return (quantity * 100.0) / minimumStock;
+    }
+
+    // ==================== MÉTODOS DE VERIFICACIÓN ====================
+
+    /**
+     * Verificar si el stock está bajo (menor que el mínimo)
+     */
+    public boolean isLowStock() {
+        return quantity < minimumStock;
+    }
+
+    /**
+     * Verificar si el stock está crítico (menor al 50% del mínimo)
+     */
+    public boolean isCriticalStock() {
+        return quantity < (minimumStock * 0.5);
+    }
+
+    /**
+     * Verificar si el recurso está agotado
+     */
+    public boolean isDepleted() {
+        return quantity == 0;
+    }
+
+    /**
+     * Verificar si el recurso está disponible
+     */
+    public boolean isAvailable() {
+        return quantity > 0;
+    }
+
+    /**
+     * Obtener cantidad necesaria para alcanzar el stock mínimo
+     */
+    public int getQuantityNeeded() {
+        return Math.max(0, minimumStock - quantity);
+    }
+
+    /**
+     * Obtener el estado del stock como texto
+     */
+    public String getStockStatus() {
+        if (isDepleted()) {
+            return "AGOTADO";
+        } else if (isCriticalStock()) {
+            return "CRÍTICO";
+        } else if (isLowStock()) {
+            return "BAJO";
+        } else {
+            return "NORMAL";
+        }
+    }
+
+    /**
+     * Obtener prioridad de reabastecimiento (1-5)
+     * 5 = Máxima prioridad (agotado o crítico)
+     * 1 = Baja prioridad (stock normal)
+     */
+    public int getRestockPriority() {
+        if (isDepleted()) {
+            return 5;
+        } else if (isCriticalStock()) {
+            return 4;
+        } else if (isLowStock()) {
+            return 3;
+        } else if (getStockPercentage() < 150) {
+            return 2;
+        } else {
+            return 1;
+        }
+    }
 }
