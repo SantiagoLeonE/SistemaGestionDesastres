@@ -622,4 +622,181 @@ public class DisasterManager {
 
         return teamsAtLocation;
     }
+    
+    // ==================== PLANIFICACIÓN DE EVACUACIONES ====================
+
+    /**
+     * Priorizar evacuaciones según urgencia
+     * Ordena las ubicaciones de mayor a menor urgencia
+     *
+     * @return Lista ordenada de ubicaciones para evacuar
+     */
+    public CustomList<Location> prioritizeEvacuations() {
+        CustomList<Location> allLocations = getAllLocations();
+
+        // Usar cola de prioridad para ordenar por urgencia (descendente)
+        PriorityQueue<Location> pq = new PriorityQueue<>(
+                Comparator.comparingInt((Location loc) -> -loc.getUrgencyLevel())
+                        .thenComparingInt(Location::getPopulation)
+        );
+
+        for (int i = 0; i < allLocations.size(); i++) {
+            pq.offer(allLocations.get(i));
+        }
+
+        CustomList<Location> prioritized = new CustomList<>();
+        while (!pq.isEmpty()) {
+            prioritized.add(pq.poll());
+        }
+
+        return prioritized;
+    }
+
+    /**
+     * Generar plan de evacuación para una ubicación
+     * Encuentra el refugio más cercano
+     *
+     * @param locationId ID de la ubicación a evacuar
+     * @return ID del refugio más cercano o null
+     */
+    public String generateEvacuationPlan(String locationId) {
+        return findNearestLocationOfType(locationId, Location.LocationType.SHELTER);
+    }
+
+    // ==================== ESTADÍSTICAS ====================
+
+    /**
+     * Obtener población total afectada
+     */
+    public int getTotalPopulation() {
+        CustomList<Location> locations = getAllLocations();
+        int total = 0;
+
+        for (int i = 0; i < locations.size(); i++) {
+            total += locations.get(i).getPopulation();
+        }
+
+        return total;
+    }
+
+    /**
+     * Obtener cantidad total de recursos disponibles
+     */
+    public int getTotalResourceQuantity() {
+        CustomList<Resource> allResources = getAllResources();
+        int total = 0;
+
+        for (int i = 0; i < allResources.size(); i++) {
+            total += allResources.get(i).getQuantity();
+        }
+
+        return total;
+    }
+
+    /**
+     * Obtener número de equipos desplegados
+     */
+    public int getDeployedTeamsCount() {
+        CustomList<RescueTeam> all = getAllRescueTeams();
+        int count = 0;
+
+        for (int i = 0; i < all.size(); i++) {
+            if (all.get(i).isDeployed()) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Obtener número total de rutas en el sistema
+     */
+    public int getTotalRoutes() {
+        return locationGraph.getEdgeCount();
+    }
+
+    // ==================== USUARIO ACTUAL ====================
+
+    /**
+     * Establecer usuario actual del sistema
+     *
+     * @param user Usuario actual
+     */
+    public void setCurrentUser(User user) {
+        this.currentUser = user;
+        if (user != null) {
+            logOperation("Usuario conectado: " + user.getFullName());
+        }
+    }
+
+    /**
+     * Obtener usuario actual
+     *
+     * @return Usuario actual o null
+     */
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    // ==================== ACCESO A ESTRUCTURAS ====================
+
+    /**
+     * Obtener el grafo de ubicaciones
+     */
+    public Graph getGraph() {
+        return locationGraph;
+    }
+
+    /**
+     * Obtener el árbol de distribución
+     */
+    public DistributionTree getDistributionTree() {
+        return distributionTree;
+    }
+
+    // ==================== REGISTRO DE OPERACIONES ====================
+
+    /**
+     * Registrar una operación en el log
+     */
+    private void logOperation(String operation) {
+        String timestamp = java.time.LocalDateTime.now().toString();
+        String logEntry = "[" + timestamp + "] " + operation;
+        operationLog.add(logEntry);
+
+        // Mantener solo las últimas 1000 operaciones
+        if (operationLog.size() > 1000) {
+            operationLog.remove(0);
+        }
+    }
+
+    /**
+     * Obtener el registro de operaciones
+     */
+    public CustomList<String> getOperationLog() {
+        return operationLog;
+    }
+
+    /**
+     * Obtener las últimas N operaciones
+     */
+    public CustomList<String> getRecentOperations(int count) {
+        CustomList<String> recent = new CustomList<>();
+        int start = Math.max(0, operationLog.size() - count);
+
+        for (int i = start; i < operationLog.size(); i++) {
+            recent.add(operationLog.get(i));
+        }
+
+        return recent;
+    }
+
+    /**
+     * Limpiar el registro de operaciones
+     */
+    public void clearOperationLog() {
+        operationLog.clear();
+        logOperation("Log de operaciones limpiado");
+    }
 }
