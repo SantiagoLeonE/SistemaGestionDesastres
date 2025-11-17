@@ -239,4 +239,330 @@ public class RescueTeam {
             this.type = type;
         }
     }
+
+    // ==================== MÉTODOS DE GESTIÓN DE ASIGNACIÓN ====================
+
+    /**
+     * Asignar equipo a una ubicación
+     *
+     * @param locationId ID de la ubicación
+     * @return true si se asignó exitosamente
+     */
+    public boolean assignToLocation(String locationId) {
+        if (locationId == null || locationId.isEmpty()) {
+            return false;
+        }
+
+        if (status == TeamStatus.AVAILABLE || status == TeamStatus.RESTING) {
+            this.assignedLocationId = locationId;
+            this.status = TeamStatus.DEPLOYED;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Desasignar equipo de su ubicación actual
+     */
+    public void unassign() {
+        this.assignedLocationId = null;
+        this.status = TeamStatus.AVAILABLE;
+    }
+
+    /**
+     * Reasignar equipo a una nueva ubicación
+     *
+     * @param newLocationId Nueva ubicación
+     * @return true si se reasignó exitosamente
+     */
+    public boolean reassignToLocation(String newLocationId) {
+        if (status == TeamStatus.DEPLOYED) {
+            unassign();
+            return assignToLocation(newLocationId);
+        }
+        return false;
+    }
+
+    /**
+     * Marcar equipo como en ruta de regreso
+     */
+    public void startReturning() {
+        if (status == TeamStatus.DEPLOYED) {
+            this.status = TeamStatus.RETURNING;
+        }
+    }
+
+    /**
+     * Completar misión y registrar éxito
+     */
+    public void completeMission(boolean successful) {
+        if (successful) {
+            successfulMissions++;
+            // Incrementar experiencia cada 5 misiones exitosas
+            if (successfulMissions % 5 == 0 && experienceLevel < 5) {
+                experienceLevel++;
+            }
+        }
+
+        unassign();
+        this.status = TeamStatus.RESTING;
+    }
+
+    // ==================== MÉTODOS DE VERIFICACIÓN DE ESTADO ====================
+
+    /**
+     * Verificar si el equipo está disponible para asignación
+     */
+    public boolean isAvailable() {
+        return status == TeamStatus.AVAILABLE;
+    }
+
+    /**
+     * Verificar si el equipo está desplegado
+     */
+    public boolean isDeployed() {
+        return status == TeamStatus.DEPLOYED;
+    }
+
+    /**
+     * Verificar si el equipo está operativo
+     */
+    public boolean isOperational() {
+        return status != TeamStatus.MAINTENANCE && members > 0;
+    }
+
+    /**
+     * Verificar si el equipo puede ser desplegado
+     */
+    public boolean canDeploy() {
+        return (status == TeamStatus.AVAILABLE || status == TeamStatus.RESTING)
+                && isOperational();
+    }
+
+    /**
+     * Verificar si el equipo está asignado a una ubicación
+     */
+    public boolean hasAssignment() {
+        return assignedLocationId != null;
+    }
+
+    /**
+     * Verificar si el equipo es experimentado (nivel >= 4)
+     */
+    public boolean isExperienced() {
+        return experienceLevel >= 4;
+    }
+
+    /**
+     * Verificar si el equipo es novato (nivel <= 2)
+     */
+    public boolean isNovice() {
+        return experienceLevel <= 2;
+    }
+
+    // ==================== MÉTODOS DE GESTIÓN DE EQUIPO ====================
+
+    /**
+     * Agregar miembros al equipo
+     */
+    public void addMembers(int count) {
+        if (count > 0) {
+            this.members += count;
+        }
+    }
+
+    /**
+     * Remover miembros del equipo
+     */
+    public boolean removeMembers(int count) {
+        if (count > 0 && count < members) {
+            this.members -= count;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Poner equipo en mantenimiento
+     */
+    public void startMaintenance() {
+        if (!isDeployed()) {
+            this.status = TeamStatus.MAINTENANCE;
+        }
+    }
+
+    /**
+     * Finalizar mantenimiento
+     */
+    public void endMaintenance() {
+        if (status == TeamStatus.MAINTENANCE) {
+            this.status = TeamStatus.AVAILABLE;
+        }
+    }
+
+    /**
+     * Poner equipo en entrenamiento
+     */
+    public void startTraining() {
+        if (!isDeployed()) {
+            this.status = TeamStatus.TRAINING;
+        }
+    }
+
+    /**
+     * Finalizar entrenamiento (puede aumentar experiencia)
+     */
+    public void endTraining() {
+        if (status == TeamStatus.TRAINING) {
+            // 50% de probabilidad de incrementar experiencia
+            if (Math.random() < 0.5 && experienceLevel < 5) {
+                experienceLevel++;
+            }
+            this.status = TeamStatus.AVAILABLE;
+        }
+    }
+
+    /**
+     * Activar modo emergencia
+     */
+    public void activateEmergencyMode() {
+        this.status = TeamStatus.EMERGENCY;
+    }
+
+    /**
+     * Desactivar modo emergencia
+     */
+    public void deactivateEmergencyMode() {
+        if (status == TeamStatus.EMERGENCY) {
+            this.status = hasAssignment() ? TeamStatus.DEPLOYED : TeamStatus.AVAILABLE;
+        }
+    }
+
+    // ==================== MÉTODOS DE CAPACIDAD Y EFICIENCIA ====================
+
+    /**
+     * Calcular la capacidad operativa del equipo
+     * Basado en número de miembros y experiencia
+     *
+     * @return Valor entre 0 y 100
+     */
+    public int getOperationalCapacity() {
+        if (!isOperational()) {
+            return 0;
+        }
+
+        // Factor de experiencia (20-60%)
+        int experienceFactor = experienceLevel * 12;
+
+        // Factor de personal (40%)
+        // Asumiendo 10 miembros como ideal
+        int personnelFactor = Math.min(40, (members * 4));
+
+        return experienceFactor + personnelFactor;
+    }
+
+    /**
+     * Obtener descripción del nivel de experiencia
+     */
+    public String getExperienceDescription() {
+        switch (experienceLevel) {
+            case 5: return "EXPERTO";
+            case 4: return "AVANZADO";
+            case 3: return "INTERMEDIO";
+            case 2: return "BÁSICO";
+            case 1: return "NOVATO";
+            default: return "DESCONOCIDO";
+        }
+    }
+
+    /**
+     * Calcular tasa de éxito aproximada
+     */
+    public double getSuccessRate() {
+        int totalMissions = successfulMissions +
+                (experienceLevel * 2); // Estimación de misiones fallidas
+
+        if (totalMissions == 0) {
+            return 0.0;
+        }
+
+        return (successfulMissions * 100.0) / totalMissions;
+    }
+
+    // ==================== MÉTODOS DE INFORMACIÓN ====================
+
+    /**
+     * Obtener información completa del equipo
+     */
+    public String getFullInfo() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== ").append(name).append(" ===\n");
+        sb.append("ID: ").append(id).append("\n");
+        sb.append("Tipo: ").append(type).append("\n");
+        sb.append("Miembros: ").append(members).append("\n");
+        sb.append("Estado: ").append(status).append("\n");
+        sb.append("Experiencia: ").append(experienceLevel).append("/5 (")
+                .append(getExperienceDescription()).append(")\n");
+        sb.append("Capacidad operativa: ").append(getOperationalCapacity()).append("%\n");
+        sb.append("Misiones exitosas: ").append(successfulMissions).append("\n");
+        sb.append("Tasa de éxito: ").append(String.format("%.1f", getSuccessRate())).append("%\n");
+
+        if (hasAssignment()) {
+            sb.append("Asignado a: ").append(assignedLocationId).append("\n");
+        }
+
+        if (!contactNumber.isEmpty()) {
+            sb.append("Contacto: ").append(contactNumber).append("\n");
+        }
+
+        if (!lastDeploymentDate.isEmpty()) {
+            sb.append("Último despliegue: ").append(lastDeploymentDate).append("\n");
+        }
+
+        return sb.toString();
+    }
+
+    // ==================== MÉTODOS SOBRESCRITOS ====================
+
+    /**
+     * Representación en String del equipo
+     */
+    @Override
+    public String toString() {
+        return name + " (" + type + ") - " + members + " miembros - " + status +
+                (hasAssignment() ? " [Asignado]" : "");
+    }
+
+    /**
+     * Comparar equipos por ID
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        RescueTeam team = (RescueTeam) obj;
+        return id.equals(team.id);
+    }
+
+    /**
+     * Hash code basado en el ID
+     */
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    /**
+     * Crear una copia del equipo
+     */
+    public RescueTeam copy() {
+        RescueTeam copy = new RescueTeam(id, name, type, members,
+                experienceLevel, contactNumber);
+        copy.setStatus(status);
+        copy.assignedLocationId = assignedLocationId;
+        copy.lastDeploymentDate = lastDeploymentDate;
+        copy.successfulMissions = successfulMissions;
+        return copy;
+    }
 }
