@@ -320,4 +320,306 @@ public class DisasterManager {
 
         return nearest;
     }
+
+    // ==================== GESTIÓN DE RECURSOS ====================
+
+    /**
+     * Agregar un recurso al inventario
+     *
+     * @param resource Recurso a agregar
+     * @return true si se agregó exitosamente
+     */
+    public boolean addResource(Resource resource) {
+        if (resource == null) {
+            return false;
+        }
+
+        resources.put(resource.getId(), resource);
+        logOperation("Recurso agregado: " + resource.getName() + " (" +
+                resource.getQuantity() + " " + resource.getUnit() + ")");
+        return true;
+    }
+
+    /**
+     * Remover un recurso del inventario
+     *
+     * @param resourceId ID del recurso
+     * @return true si se removió exitosamente
+     */
+    public boolean removeResource(String resourceId) {
+        if (resourceId == null) {
+            return false;
+        }
+
+        Resource resource = resources.remove(resourceId);
+        if (resource != null) {
+            logOperation("Recurso removido: " + resource.getName());
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Obtener un recurso por ID
+     *
+     * @param id ID del recurso
+     * @return Recurso encontrado o null
+     */
+    public Resource getResource(String id) {
+        return resources.get(id);
+    }
+
+    /**
+     * Obtener todos los recursos del sistema
+     *
+     * @return Lista de recursos
+     */
+    public CustomList<Resource> getAllResources() {
+        return resources.values();
+    }
+
+    /**
+     * Obtener recursos por tipo
+     *
+     * @param type Tipo de recurso
+     * @return Lista de recursos del tipo especificado
+     */
+    public CustomList<Resource> getResourcesByType(Resource.ResourceType type) {
+        CustomList<Resource> filtered = new CustomList<>();
+        CustomList<Resource> all = getAllResources();
+
+        for (int i = 0; i < all.size(); i++) {
+            Resource res = all.get(i);
+            if (res.getType() == type) {
+                filtered.add(res);
+            }
+        }
+
+        return filtered;
+    }
+
+    /**
+     * Obtener recursos con stock bajo
+     */
+    public CustomList<Resource> getLowStockResources() {
+        CustomList<Resource> lowStock = new CustomList<>();
+        CustomList<Resource> all = getAllResources();
+
+        for (int i = 0; i < all.size(); i++) {
+            Resource res = all.get(i);
+            if (res.isLowStock()) {
+                lowStock.add(res);
+            }
+        }
+
+        return lowStock;
+    }
+
+    /**
+     * Distribuir un recurso a una ubicación
+     *
+     * @param resourceId ID del recurso
+     * @param locationId ID de la ubicación
+     * @param quantity Cantidad a distribuir
+     * @return true si se distribuyó exitosamente
+     */
+    public boolean distributeResource(String resourceId, String locationId, int quantity) {
+        Resource resource = resources.get(resourceId);
+
+        if (resource == null || !locationGraph.containsVertex(locationId)) {
+            return false;
+        }
+
+        if (resource.reduceQuantity(quantity)) {
+            // Crear copia del recurso para la ubicación
+            Resource distributed = new Resource(
+                    resourceId + "_" + locationId,
+                    resource.getName(),
+                    resource.getType(),
+                    quantity,
+                    resource.getUnit()
+            );
+
+            if (distributionTree != null) {
+                distributionTree.assignResources(locationId, distributed);
+            }
+
+            Location location = locationGraph.getVertex(locationId);
+            logOperation("Recurso distribuido: " + resource.getName() + " (" + quantity + " " +
+                    resource.getUnit() + ") a " + location.getName());
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Obtener recursos asignados a una ubicación
+     *
+     * @param locationId ID de la ubicación
+     * @return Lista de recursos asignados
+     */
+    public CustomList<Resource> getLocationResources(String locationId) {
+        if (distributionTree == null) {
+            return new CustomList<>();
+        }
+        return distributionTree.getResources(locationId);
+    }
+
+    // ==================== GESTIÓN DE EQUIPOS DE RESCATE ====================
+
+    /**
+     * Agregar un equipo de rescate
+     *
+     * @param team Equipo a agregar
+     * @return true si se agregó exitosamente
+     */
+    public boolean addRescueTeam(RescueTeam team) {
+        if (team == null) {
+            return false;
+        }
+
+        rescueTeams.put(team.getId(), team);
+        logOperation("Equipo agregado: " + team.getName() + " (" + team.getType() + ")");
+        return true;
+    }
+
+    /**
+     * Remover un equipo de rescate
+     *
+     * @param teamId ID del equipo
+     * @return true si se removió exitosamente
+     */
+    public boolean removeRescueTeam(String teamId) {
+        if (teamId == null) {
+            return false;
+        }
+
+        RescueTeam team = rescueTeams.remove(teamId);
+        if (team != null) {
+            logOperation("Equipo removido: " + team.getName());
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Obtener un equipo por ID
+     *
+     * @param id ID del equipo
+     * @return Equipo encontrado o null
+     */
+    public RescueTeam getRescueTeam(String id) {
+        return rescueTeams.get(id);
+    }
+
+    /**
+     * Obtener todos los equipos de rescate
+     *
+     * @return Lista de equipos
+     */
+    public CustomList<RescueTeam> getAllRescueTeams() {
+        return rescueTeams.values();
+    }
+
+    /**
+     * Obtener equipos por tipo
+     *
+     * @param type Tipo de equipo
+     * @return Lista de equipos del tipo especificado
+     */
+    public CustomList<RescueTeam> getTeamsByType(RescueTeam.TeamType type) {
+        CustomList<RescueTeam> filtered = new CustomList<>();
+        CustomList<RescueTeam> all = getAllRescueTeams();
+
+        for (int i = 0; i < all.size(); i++) {
+            RescueTeam team = all.get(i);
+            if (team.getType() == type) {
+                filtered.add(team);
+            }
+        }
+
+        return filtered;
+    }
+
+    /**
+     * Obtener equipos disponibles para asignación
+     *
+     * @return Lista de equipos disponibles
+     */
+    public CustomList<RescueTeam> getAvailableTeams() {
+        CustomList<RescueTeam> available = new CustomList<>();
+        CustomList<RescueTeam> all = getAllRescueTeams();
+
+        for (int i = 0; i < all.size(); i++) {
+            RescueTeam team = all.get(i);
+            if (team.isAvailable()) {
+                available.add(team);
+            }
+        }
+
+        return available;
+    }
+
+    /**
+     * Asignar un equipo a una ubicación
+     *
+     * @param teamId ID del equipo
+     * @param locationId ID de la ubicación
+     * @return true si se asignó exitosamente
+     */
+    public boolean assignTeamToLocation(String teamId, String locationId) {
+        RescueTeam team = rescueTeams.get(teamId);
+
+        if (team == null || !locationGraph.containsVertex(locationId)) {
+            return false;
+        }
+
+        if (team.assignToLocation(locationId)) {
+            Location location = locationGraph.getVertex(locationId);
+            logOperation("Equipo asignado: " + team.getName() + " a " + location.getName());
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Desasignar un equipo de su ubicación actual
+     *
+     * @param teamId ID del equipo
+     * @return true si se desasignó exitosamente
+     */
+    public boolean unassignTeam(String teamId) {
+        RescueTeam team = rescueTeams.get(teamId);
+
+        if (team != null && team.hasAssignment()) {
+            String locationId = team.getAssignedLocationId();
+            team.unassign();
+            logOperation("Equipo desasignado: " + team.getName());
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Obtener equipos asignados a una ubicación
+     *
+     * @param locationId ID de la ubicación
+     * @return Lista de equipos asignados
+     */
+    public CustomList<RescueTeam> getTeamsAtLocation(String locationId) {
+        CustomList<RescueTeam> teamsAtLocation = new CustomList<>();
+        CustomList<RescueTeam> all = getAllRescueTeams();
+
+        for (int i = 0; i < all.size(); i++) {
+            RescueTeam team = all.get(i);
+            if (team.hasAssignment() && team.getAssignedLocationId().equals(locationId)) {
+                teamsAtLocation.add(team);
+            }
+        }
+
+        return teamsAtLocation;
+    }
 }
