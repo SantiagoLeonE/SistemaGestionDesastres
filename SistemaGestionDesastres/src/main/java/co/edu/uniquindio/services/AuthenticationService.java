@@ -239,4 +239,228 @@ public class AuthenticationService {
         return false;
     }
     
+    // ==================== AUTENTICACIÓN ====================
+
+    /**
+     * Autenticar usuario con nombre de usuario y contraseña
+     *
+     * @param username Nombre de usuario
+     * @param password Contraseña
+     * @return Usuario autenticado o null si falla
+     */
+    public User authenticate(String username, String password) {
+        if (username == null || password == null) {
+            return null;
+        }
+
+        username = username.toLowerCase().trim();
+
+        // Verificar si el usuario está bloqueado temporalmente
+        if (isTemporarilyLocked(username)) {
+            long remainingTime = getRemainingLockoutTime(username);
+            System.out.println("Usuario bloqueado temporalmente. Intente en " +
+                    (remainingTime / 1000) + " segundos.");
+            return null;
+        }
+
+        User user = users.get(username);
+
+        if (user != null) {
+            // Verificar si el usuario está activo
+            if (!user.isActive()) {
+                System.out.println("La cuenta está desactivada. Contacte al administrador.");
+                return null;
+            }
+
+            // Verificar contraseña
+            if (user.checkPassword(password)) {
+                // Autenticación exitosa
+                currentUser = user;
+                user.recordSuccessfulLogin();
+                loginAttempts.put(username, 0);
+                lockoutTimes.remove(username);
+                return user;
+            } else {
+                // Contraseña incorrecta
+                recordFailedAttempt(username);
+            }
+        } else {
+            // Usuario no existe (también contar como intento fallido)
+            recordFailedAttempt(username);
+        }
+
+        return null;
+    }
+
+    /**
+     * Registrar un intento de login fallido
+     */
+    private void recordFailedAttempt(String username) {
+        Integer attempts = loginAttempts.get(username);
+        attempts = (attempts == null) ? 1 : attempts + 1;
+        loginAttempts.put(username, attempts);
+
+        if (attempts >= MAX_ATTEMPTS) {
+            // Bloquear temporalmente
+            lockoutTimes.put(username, System.currentTimeMillis());
+            System.out.println("Demasiados intentos fallidos. Usuario bloqueado temporalmente.");
+        } else {
+            System.out.println("Credenciales incorrectas. Intentos restantes: " +
+                    (MAX_ATTEMPTS - attempts));
+        }
+    }
+
+    /**
+     * Verificar si un usuario está temporalmente bloqueado
+     */
+    private boolean isTemporarilyLocked(String username) {
+        Long lockoutTime = lockoutTimes.get(username);
+        if (lockoutTime == null) {
+            return false;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        long elapsedTime = currentTime - lockoutTime;
+
+        if (elapsedTime >= LOCKOUT_DURATION) {
+            // El bloqueo ha expirado
+            lockoutTimes.remove(username);
+            loginAttempts.put(username, 0);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Obtener tiempo restante de bloqueo en milisegundos
+     */
+    private long getRemainingLockoutTime(String username) {
+        Long lockoutTime = lockoutTimes.get(username);
+        if (lockoutTime == null) {
+            return 0;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        long elapsedTime = currentTime - lockoutTime;
+
+        return Math.max(0, LOCKOUT_DURATION - elapsedTime);
+    }
+
+    /**
+     * Cerrar sesión del usuario actual
+     */
+    public void logout() {
+        currentUser = null;
+    }
+
+    /**
+     * Obtener usuario actual autenticado
+     *
+     * @return Usuario actual o null si no hay sesión activa
+     */
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    /**
+     * Verificar si hay una sesión activa
+     *
+     * @return true si hay un usuario autenticado
+     */
+    public boolean isAuthenticated() {
+        return currentUser != null;
+    }
+
+    // ==================== GESTIÓN DE CONTRASEÑAS ====================
+
+    /**
+     * Cambiar contraseña del usuario actual
+     *
+     * @param oldPassword Contraseña actual
+     * @param newPassword Nueva contraseña
+     * @return true si se cambió exitosamente
+     */
+    public boolean changePassword(String oldPassword, String newPassword) {
+        if (currentUser == null) {
+            return false;
+        }
+
+        return currentUser.changePassword(oldPassword, newPassword);
+    }
+
+    /**
+     * Resetear contraseña (solo administradores)
+     *
+     * @param username Usuario al que resetear la contraseña
+     * @param newPassword Nueva contraseña
+     * @return true si se reseteó exitosamente
+     */
+    public boolean resetPassword(String username, String newPassword) {
+        if (!isCurrentUserAdmin()) {
+            return false;
+        }
+
+        User user = users.get(username.toLowerCase().trim());
+        if (user != null) {
+            user.setPassword(newPassword);
+            loginAttempts.put(username, 0);
+            lockoutTimes.remove(username);
+            return true;
+        }
+
+        return false;
+    }
+
+    // ==================== VERIFICACIÓN DE PERMISOS ====================
+
+    /**
+     * Verificar si el usuario actual es administrador
+     */
+    public boolean isCurrentUserAdmin() {
+        return currentUser != null && currentUser.isAdministrator();
+    }
+
+    /**
+     * Verificar si el usuario actual es operador de emergencia
+     */
+    public boolean isCurrentUserOperator() {
+        return currentUser != null && currentUser.isEmergencyOperator();
+    }
+
+    /**
+     * Verificar si el usuario actual es coordinador
+     */
+    public boolean isCurrentUserCoordinator() {
+        return currentUser != null && currentUser.isCoordinator();
+    }
+
+    /**
+     * Verificar si el usuario actual puede gestionar recursos
+     */
+    public boolean canCurrentUserManageResources() {
+        return currentUser != null && currentUser.canManageResources();
+    }
+
+    /**
+     * Verificar si el usuario actual puede asignar equipos
+     */
+    public boolean canCurrentUserAssignTeams() {
+        return currentUser != null && currentUser.canAssignTeams();
+    }
+
+    /**
+     * Verificar si el usuario actual puede modificar rutas
+     */
+    public boolean canCurrentUserModifyRoutes() {
+        return currentUser != null && currentUser.canModifyRoutes();
+    }
+
+    /**
+     * Verificar si el usuario actual puede gestionar usuarios
+     */
+    public boolean canCurrentUserManageUsers() {
+        return currentUser != null && currentUser.canManageUsers();
+    }
+
 }
