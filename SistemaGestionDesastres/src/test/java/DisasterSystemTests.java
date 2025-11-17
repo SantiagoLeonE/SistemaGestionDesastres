@@ -79,6 +79,46 @@ public class DisasterSystemTests {
         }
     }
 
+    // ========== PRUEBA 2: CustomMap ==========
+    private static void testCustomMap() {
+        System.out.println("Prueba 2: CustomMap");
+        System.out.println("-".repeat(65));
+
+        try {
+            CustomMap<String, Integer> map = new CustomMap<>();
+
+            // Agregar elementos
+            map.put("uno", 1);
+            map.put("dos", 2);
+            map.put("tres", 3);
+            assertCondition(map.size() == 3, "Tamaño después de agregar 3 elementos");
+
+            // Obtener valores
+            assertCondition(map.get("uno") == 1, "Obtener valor de 'uno'");
+            assertCondition(map.get("dos") == 2, "Obtener valor de 'dos'");
+
+            // Actualizar valor
+            map.put("uno", 10);
+            assertCondition(map.get("uno") == 10, "Actualizar valor existente");
+            assertCondition(map.size() == 3, "Tamaño sin cambios al actualizar");
+
+            // Verificar contiene clave
+            assertCondition(map.containsKey("tres"), "Contiene clave 'tres'");
+            assertCondition(!map.containsKey("cuatro"), "No contiene clave 'cuatro'");
+
+            // Remover elemento
+            Integer removed = map.remove("dos");
+            assertCondition(removed == 2, "Valor removido");
+            assertCondition(map.size() == 2, "Tamaño después de remover");
+
+            System.out.println("✓ Prueba CustomMap PASADA\n");
+            testsPassed++;
+        } catch (Exception e) {
+            System.out.println("✗ Prueba CustomMap FALLIDA: " + e.getMessage() + "\n");
+            testsFailed++;
+        }
+    }
+
     // Método auxiliar para assertions
     private static void assertCondition(boolean condition, String description) {
         if (condition) {
