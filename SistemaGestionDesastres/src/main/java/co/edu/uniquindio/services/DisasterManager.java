@@ -622,7 +622,7 @@ public class DisasterManager {
 
         return teamsAtLocation;
     }
-    
+
     // ==================== PLANIFICACIÓN DE EVACUACIONES ====================
 
     /**
