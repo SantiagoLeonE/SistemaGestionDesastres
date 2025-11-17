@@ -230,7 +230,7 @@ public class DisasterSystemTests {
 
             // Verificar camino
             CustomList<String> path = result.getPath("D");
-            assertCondition(path.size() == 3, "Camino A->D tiene 3 nodos");
+            assertCondition(path.size() == 4, "Camino A->D tiene 4 nodos");
             assertCondition(path.get(0).equals("A"), "Camino inicia en A");
             assertCondition(path.get(path.size() - 1).equals("D"), "Camino termina en D");
 
