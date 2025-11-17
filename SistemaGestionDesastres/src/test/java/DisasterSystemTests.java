@@ -11,7 +11,7 @@ import co.edu.uniquindio.structures.Graph;
 import co.edu.uniquindio.structures.PriorityQueue;
 
 /**
- * Suite de pruebas unitarias para el sistema de gestión de desastres
+ * Pruebas unitarias para el sistema de gestión de desastres
  */
 public class DisasterSystemTests {
 
@@ -22,6 +22,15 @@ public class DisasterSystemTests {
         System.out.println("╔═══════════════════════════════════════════════════════════════╗");
         System.out.println("║    PRUEBAS UNITARIAS - SISTEMA DE GESTIÓN DE DESASTRES        ║");
         System.out.println("╚═══════════════════════════════════════════════════════════════╝\n");
+
+        // Ejecutar todas las pruebas
+        testCustomList();
+        testCustomMap();
+        testPriorityQueue();
+        testGraph();
+        testDijkstraAlgorithm();
+        testDisasterManager();
+        testAuthenticationService();
 
         // Resumen
         System.out.println("\n" + "=".repeat(65));
@@ -229,6 +238,90 @@ public class DisasterSystemTests {
             testsPassed++;
         } catch (Exception e) {
             System.out.println("✗ Prueba Dijkstra FALLIDA: " + e.getMessage() + "\n");
+            testsFailed++;
+        }
+    }
+
+    // ========== PRUEBA 6: DisasterManager ==========
+    private static void testDisasterManager() {
+        System.out.println("Prueba 6: DisasterManager");
+        System.out.println("-".repeat(65));
+
+        try {
+            DisasterManager manager = new DisasterManager();
+
+            // Agregar ubicaciones
+            Location loc1 = new Location("L1", "Ciudad", Location.LocationType.CITY, 5000, 5);
+            Location loc2 = new Location("L2", "Refugio", Location.LocationType.SHELTER, 0, 2);
+            manager.addLocation(loc1);
+            manager.addLocation(loc2);
+
+            assertCondition(manager.getAllLocations().size() == 2,
+                    "Número de ubicaciones agregadas");
+
+            // Agregar recursos
+            Resource res = new Resource("R1", "Agua", Resource.ResourceType.WATER, 1000, "L");
+            manager.addResource(res);
+
+            assertCondition(manager.getAllResources().size() == 1, "Recurso agregado");
+
+            // Agregar equipo
+            RescueTeam team = new RescueTeam("T1", "Médicos", RescueTeam.TeamType.MEDICAL, 5);
+            manager.addRescueTeam(team);
+
+            assertCondition(manager.getAllRescueTeams().size() == 1, "Equipo agregado");
+
+            // Asignar equipo
+            manager.assignTeamToLocation("T1", "L1");
+            RescueTeam retrieved = manager.getRescueTeam("T1");
+            assertCondition(retrieved.getAssignedLocationId().equals("L1"),
+                    "Equipo asignado correctamente");
+
+            // Priorizar evacuaciones
+            CustomList<Location> prioritized = manager.prioritizeEvacuations();
+            assertCondition(prioritized.get(0).getUrgencyLevel() >=
+                            prioritized.get(1).getUrgencyLevel(),
+                    "Evacuaciones priorizadas correctamente");
+
+            System.out.println("✓ Prueba DisasterManager PASADA\n");
+            testsPassed++;
+        } catch (Exception e) {
+            System.out.println("✗ Prueba DisasterManager FALLIDA: " + e.getMessage() + "\n");
+            testsFailed++;
+        }
+    }
+
+    // ========== PRUEBA 7: AuthenticationService ==========
+    private static void testAuthenticationService() {
+        System.out.println("Prueba 7: AuthenticationService");
+        System.out.println("-".repeat(65));
+
+        try {
+            AuthenticationService auth = new AuthenticationService();
+
+            // Autenticación exitosa
+            User user = auth.authenticate("admin", "admin123");
+            assertCondition(user != null, "Autenticación exitosa con credenciales válidas");
+            assertCondition(user.isAdministrator(), "Usuario es administrador");
+
+            // Autenticación fallida
+            User failed = auth.authenticate("admin", "wrongpassword");
+            assertCondition(failed == null, "Autenticación falla con password incorrecto");
+
+            // Verificar usuario actual
+            assertCondition(auth.isAuthenticated(), "Sesión activa");
+            assertCondition(auth.getCurrentUser().getUsername().equals("admin"),
+                    "Usuario actual correcto");
+
+            // Cerrar sesión
+            auth.logout();
+            assertCondition(!auth.isAuthenticated(), "Sesión cerrada");
+            assertCondition(auth.getCurrentUser() == null, "No hay usuario actual");
+
+            System.out.println("✓ Prueba AuthenticationService PASADA\n");
+            testsPassed++;
+        } catch (Exception e) {
+            System.out.println("✗ Prueba AuthenticationService FALLIDA: " + e.getMessage() + "\n");
             testsFailed++;
         }
     }
