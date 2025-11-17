@@ -285,4 +285,256 @@ public class User {
         this.isActive = true;
         this.loginAttempts = 0;
     }
+
+    // ==================== MÉTODOS DE VERIFICACIÓN DE PERMISOS ====================
+
+    /**
+     * Verificar si el usuario es administrador
+     */
+    public boolean isAdministrator() {
+        return role == UserRole.ADMINISTRATOR;
+    }
+
+    /**
+     * Verificar si el usuario es operador de emergencia
+     */
+    public boolean isEmergencyOperator() {
+        return role == UserRole.EMERGENCY_OPERATOR;
+    }
+
+    /**
+     * Verificar si el usuario es coordinador
+     */
+    public boolean isCoordinator() {
+        return role == UserRole.COORDINATOR;
+    }
+
+    /**
+     * Verificar si el usuario solo puede ver (sin editar)
+     */
+    public boolean isViewer() {
+        return role == UserRole.VIEWER;
+    }
+
+    /**
+     * Verificar si el usuario puede gestionar recursos
+     */
+    public boolean canManageResources() {
+        return role == UserRole.ADMINISTRATOR ||
+                role == UserRole.COORDINATOR;
+    }
+
+    /**
+     * Verificar si el usuario puede asignar equipos
+     */
+    public boolean canAssignTeams() {
+        return role == UserRole.ADMINISTRATOR ||
+                role == UserRole.EMERGENCY_OPERATOR ||
+                role == UserRole.COORDINATOR;
+    }
+
+    /**
+     * Verificar si el usuario puede ver estadísticas
+     */
+    public boolean canViewStatistics() {
+        return isActive; // Todos los usuarios activos pueden ver estadísticas
+    }
+
+    /**
+     * Verificar si el usuario puede agregar ubicaciones
+     */
+    public boolean canAddLocations() {
+        return role == UserRole.ADMINISTRATOR;
+    }
+
+    /**
+     * Verificar si el usuario puede modificar rutas
+     */
+    public boolean canModifyRoutes() {
+        return role == UserRole.ADMINISTRATOR ||
+                role == UserRole.COORDINATOR;
+    }
+
+    /**
+     * Verificar si el usuario puede gestionar otros usuarios
+     */
+    public boolean canManageUsers() {
+        return role == UserRole.ADMINISTRATOR;
+    }
+
+    /**
+     * Verificar si el usuario puede generar reportes
+     */
+    public boolean canGenerateReports() {
+        return role != UserRole.VIEWER;
+    }
+
+    // ==================== MÉTODOS DE VALIDACIÓN ====================
+
+    /**
+     * Validar formato de email
+     */
+    public static boolean isValidEmail(String email) {
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        return email.matches(emailRegex);
+    }
+
+    /**
+     * Validar formato de teléfono (números y guiones)
+     */
+    public static boolean isValidPhoneNumber(String phone) {
+        if (phone == null || phone.isEmpty()) {
+            return false;
+        }
+        String phoneRegex = "^[0-9\\-\\+\\(\\)\\s]{7,20}$";
+        return phone.matches(phoneRegex);
+    }
+
+    /**
+     * Validar fortaleza de contraseña
+     *
+     * @return nivel de fortaleza (0-3)
+     * 0: Débil, 1: Media, 2: Fuerte, 3: Muy fuerte
+     */
+    public static int getPasswordStrength(String password) {
+        if (password == null || password.length() < 6) {
+            return 0;
+        }
+
+        int strength = 0;
+
+        // Longitud adecuada
+        if (password.length() >= 8) strength++;
+
+        // Tiene números
+        if (password.matches(".*\\d.*")) strength++;
+
+        // Tiene mayúsculas y minúsculas
+        if (password.matches(".*[a-z].*") && password.matches(".*[A-Z].*")) strength++;
+
+        // Tiene caracteres especiales
+        if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) strength++;
+
+        return Math.min(strength, 3);
+    }
+
+    /**
+     * Obtener descripción de la fortaleza de contraseña
+     */
+    public static String getPasswordStrengthDescription(String password) {
+        int strength = getPasswordStrength(password);
+        switch (strength) {
+            case 0: return "DÉBIL";
+            case 1: return "MEDIA";
+            case 2: return "FUERTE";
+            case 3: return "MUY FUERTE";
+            default: return "DESCONOCIDA";
+        }
+    }
+
+    // ==================== MÉTODOS DE UTILIDAD ====================
+
+    /**
+     * Obtener fecha y hora actual formateada
+     */
+    private String getCurrentDateTime() {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            return now.format(formatter);
+        } catch (Exception e) {
+            // Si falla, retornar formato simple
+            return java.time.Instant.now().toString();
+        }
+    }
+
+    /**
+     * Obtener información completa del usuario
+     */
+    public String getFullInfo() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== ").append(fullName).append(" ===\n");
+        sb.append("Usuario: ").append(username).append("\n");
+        sb.append("Rol: ").append(role).append("\n");
+        sb.append("Estado: ").append(isActive ? "ACTIVO" : "INACTIVO").append("\n");
+
+        if (!email.isEmpty()) {
+            sb.append("Email: ").append(email).append("\n");
+        }
+
+        if (!phoneNumber.isEmpty()) {
+            sb.append("Teléfono: ").append(phoneNumber).append("\n");
+        }
+
+        sb.append("Fecha de creación: ").append(createdDate).append("\n");
+
+        if (!lastLoginDate.isEmpty()) {
+            sb.append("Último acceso: ").append(lastLoginDate).append("\n");
+        }
+
+        if (loginAttempts > 0) {
+            sb.append("Intentos de login fallidos: ").append(loginAttempts).append("\n");
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Obtener lista de permisos del usuario
+     */
+    public String getPermissionsSummary() {
+        StringBuilder sb = new StringBuilder("Permisos de ").append(fullName).append(":\n");
+        sb.append("- Ver estadísticas: ").append(canViewStatistics() ? "Sí" : "No").append("\n");
+        sb.append("- Gestionar recursos: ").append(canManageResources() ? "Sí" : "No").append("\n");
+        sb.append("- Asignar equipos: ").append(canAssignTeams() ? "Sí" : "No").append("\n");
+        sb.append("- Agregar ubicaciones: ").append(canAddLocations() ? "Sí" : "No").append("\n");
+        sb.append("- Modificar rutas: ").append(canModifyRoutes() ? "Sí" : "No").append("\n");
+        sb.append("- Gestionar usuarios: ").append(canManageUsers() ? "Sí" : "No").append("\n");
+        sb.append("- Generar reportes: ").append(canGenerateReports() ? "Sí" : "No").append("\n");
+        return sb.toString();
+    }
+
+    // ==================== MÉTODOS SOBRESCRITOS ====================
+
+    /**
+     * Representación en String del usuario
+     */
+    @Override
+    public String toString() {
+        return fullName + " (" + role + ")" + (isActive ? "" : " [INACTIVO]");
+    }
+
+    /**
+     * Comparar usuarios por username
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        User user = (User) obj;
+        return username.equals(user.username);
+    }
+
+    /**
+     * Hash code basado en el username
+     */
+    @Override
+    public int hashCode() {
+        return username.hashCode();
+    }
+
+    /**
+     * Crear una copia del usuario (sin la contraseña)
+     */
+    public User copyWithoutPassword() {
+        User copy = new User(username, "***", fullName, role, email, phoneNumber);
+        copy.isActive = this.isActive;
+        copy.createdDate = this.createdDate;
+        copy.lastLoginDate = this.lastLoginDate;
+        copy.loginAttempts = this.loginAttempts;
+        return copy;
+    }
 }
