@@ -119,6 +119,120 @@ public class DisasterSystemTests {
         }
     }
 
+    // ========== PRUEBA 3: PriorityQueue ==========
+    private static void testPriorityQueue() {
+        System.out.println("Prueba 3: PriorityQueue");
+        System.out.println("-".repeat(65));
+
+        try {
+            PriorityQueue<Integer> pq = new PriorityQueue<>((a, b) -> a - b);
+
+            // Agregar elementos
+            pq.offer(5);
+            pq.offer(2);
+            pq.offer(8);
+            pq.offer(1);
+            pq.offer(3);
+
+            assertCondition(pq.size() == 5, "Tamaño después de agregar 5 elementos");
+
+            // Verificar orden (min-heap)
+            assertCondition(pq.peek() == 1, "Peek devuelve el mínimo");
+            assertCondition(pq.poll() == 1, "Poll devuelve 1");
+            assertCondition(pq.poll() == 2, "Poll devuelve 2");
+            assertCondition(pq.poll() == 3, "Poll devuelve 3");
+            assertCondition(pq.size() == 2, "Tamaño después de 3 polls");
+
+            System.out.println("✓ Prueba PriorityQueue PASADA\n");
+            testsPassed++;
+        } catch (Exception e) {
+            System.out.println("✗ Prueba PriorityQueue FALLIDA: " + e.getMessage() + "\n");
+            testsFailed++;
+        }
+    }
+
+    // ========== PRUEBA 4: Graph ==========
+    private static void testGraph() {
+        System.out.println("Prueba 4: Graph");
+        System.out.println("-".repeat(65));
+
+        try {
+            Graph graph = new Graph();
+
+            // Agregar vértices
+            Location loc1 = new Location("L1", "Loc1", Location.LocationType.CITY, 1000, 3);
+            Location loc2 = new Location("L2", "Loc2", Location.LocationType.SHELTER, 500, 2);
+            Location loc3 = new Location("L3", "Loc3", Location.LocationType.HOSPITAL, 200, 4);
+
+            graph.addVertex(loc1);
+            graph.addVertex(loc2);
+            graph.addVertex(loc3);
+
+            assertCondition(graph.getVertexCount() == 3, "Número de vértices");
+
+            // Agregar aristas
+            graph.addEdge("L1", "L2", 5.0);
+            graph.addEdge("L2", "L3", 3.0);
+            graph.addEdge("L1", "L3", 10.0);
+
+            assertCondition(graph.hasEdge("L1", "L2"), "Existe arista L1->L2");
+            assertCondition(graph.getEdgeWeight("L1", "L2") == 5.0, "Peso de arista L1->L2");
+
+            // Verificar vecinos
+            CustomList<String> neighbors = graph.getNeighbors("L1");
+            assertCondition(neighbors.size() == 2, "L1 tiene 2 vecinos");
+
+            System.out.println("✓ Prueba Graph PASADA\n");
+            testsPassed++;
+        } catch (Exception e) {
+            System.out.println("✗ Prueba Graph FALLIDA: " + e.getMessage() + "\n");
+            testsFailed++;
+        }
+    }
+
+    // ========== PRUEBA 5: Algoritmo de Dijkstra ==========
+    private static void testDijkstraAlgorithm() {
+        System.out.println("Prueba 5: Algoritmo de Dijkstra");
+        System.out.println("-".repeat(65));
+
+        try {
+            Graph graph = new Graph();
+
+            // Crear grafo de prueba
+            graph.addVertex(new Location("A", "A", Location.LocationType.CITY, 100, 1));
+            graph.addVertex(new Location("B", "B", Location.LocationType.CITY, 100, 1));
+            graph.addVertex(new Location("C", "C", Location.LocationType.CITY, 100, 1));
+            graph.addVertex(new Location("D", "D", Location.LocationType.CITY, 100, 1));
+
+            graph.addEdge("A", "B", 4.0);
+            graph.addEdge("A", "C", 2.0);
+            graph.addEdge("B", "D", 5.0);
+            graph.addEdge("C", "B", 1.0);
+            graph.addEdge("C", "D", 8.0);
+
+            // Calcular caminos más cortos desde A
+            DijkstraAlgorithm.DijkstraResult result =
+                    DijkstraAlgorithm.findShortestPaths(graph, "A");
+
+            assertCondition(result.getDistance("A") == 0.0, "Distancia a A es 0");
+            assertCondition(result.getDistance("B") == 3.0, "Distancia a B es 3");
+            assertCondition(result.getDistance("C") == 2.0, "Distancia a C es 2");
+            assertCondition(result.getDistance("D") == 8.0, "Distancia a D es 8");
+
+            // Verificar camino
+            CustomList<String> path = result.getPath("D");
+            assertCondition(path.size() == 3, "Camino A->D tiene 3 nodos");
+            assertCondition(path.get(0).equals("A"), "Camino inicia en A");
+            assertCondition(path.get(path.size() - 1).equals("D"), "Camino termina en D");
+
+            System.out.println("✓ Prueba Dijkstra PASADA\n");
+            testsPassed++;
+        } catch (Exception e) {
+            System.out.println("✗ Prueba Dijkstra FALLIDA: " + e.getMessage() + "\n");
+            testsFailed++;
+        }
+    }
+
     // Método auxiliar para assertions
     private static void assertCondition(boolean condition, String description) {
         if (condition) {
