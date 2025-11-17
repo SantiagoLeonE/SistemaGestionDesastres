@@ -359,4 +359,87 @@ public class Resource {
             return 1;
         }
     }
+
+    // ==================== MÉTODOS DE INFORMACIÓN ====================
+
+    /**
+     * Obtener información completa del recurso
+     */
+    public String getFullInfo() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== ").append(name).append(" ===\n");
+        sb.append("ID: ").append(id).append("\n");
+        sb.append("Tipo: ").append(type).append("\n");
+        sb.append("Cantidad: ").append(quantity).append(" ").append(unit).append("\n");
+        sb.append("Stock mínimo: ").append(minimumStock).append(" ").append(unit).append("\n");
+        sb.append("Estado: ").append(getStockStatus()).append("\n");
+        sb.append("Prioridad reabastecimiento: ").append(getRestockPriority()).append("/5\n");
+
+        if (!supplier.isEmpty()) {
+            sb.append("Proveedor: ").append(supplier).append("\n");
+        }
+
+        if (isPerishable) {
+            sb.append("Perecedero: Sí\n");
+            if (!expirationDate.isEmpty()) {
+                sb.append("Fecha de expiración: ").append(expirationDate).append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    // ==================== MÉTODOS SOBRESCRITOS ====================
+
+    /**
+     * Representación en String del recurso
+     */
+    @Override
+    public String toString() {
+        return name + " - " + quantity + " " + unit + " [" + getStockStatus() + "]";
+    }
+
+    /**
+     * Comparar recursos por ID
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Resource resource = (Resource) obj;
+        return id.equals(resource.id);
+    }
+
+    /**
+     * Hash code basado en el ID
+     */
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    /**
+     * Crear una copia del recurso
+     */
+    public Resource copy() {
+        return new Resource(id, name, type, quantity, unit, minimumStock,
+                supplier, isPerishable, expirationDate);
+    }
+
+    /**
+     * Combinar dos recursos del mismo tipo
+     * Suma las cantidades si son del mismo tipo
+     */
+    public static Resource merge(Resource r1, Resource r2) {
+        if (r1 == null) return r2;
+        if (r2 == null) return r1;
+
+        if (!r1.type.equals(r2.type) || !r1.unit.equals(r2.unit)) {
+            throw new IllegalArgumentException("Cannot merge resources of different types or units");
+        }
+
+        Resource merged = r1.copy();
+        merged.quantity += r2.quantity;
+        return merged;
+    }
 }
